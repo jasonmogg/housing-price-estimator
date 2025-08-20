@@ -1,32 +1,45 @@
 import csv from 'csvtojson';
-import { RandomForestRegression } from 'ml-random-forest';
+import fs from 'node:fs';
+import { RandomForestClassifier } from 'ml-random-forest';
 
 const PRICE_LABEL = 'price';
 
-class HousingPriceEstimator {
+export class HousingPriceEstimator {
     #features = Object.freeze(['bedrooms', 'bathrooms', 'yearBuilt', 'livingArea', 'lotSize']);
     #regression;
     #trainingPromise;
 
-    constructor (trainingPath, options = {
+    constructor (trainingPath, modelPath, options = {
         maxFeatures: this.#features.length,
         nEstimators: 200,
         replacement: false,
-        seed: 42
+        seed: 3
     }) {
-        this.#trainingPromise = this.#load(trainingPath).then(({ data, rows }) => {
-            const labels = rows[0];
+        if (modelPath && fs.existsSync(modelPath)) {
+            this.#trainingPromise = new Promise(resolve => {
+                this.#regression = RandomForestClassifier.load(JSON.parse(fs.readSync(modelPath)));
 
-            const priceData = rows.slice(1).map(row => row[labels.indexOf(PRICE_LABEL)]);
+                resolve(this.#regression);
+            });
+        } else {
+            this.#trainingPromise = this.#load(trainingPath).then(({ data, rows }) => {
+                const labels = rows[0];
 
-            data.forEach((row, index) => console.log(row, priceData[index]));
+                const priceData = rows.slice(1).map(row => row[labels.indexOf(PRICE_LABEL)]);
 
-            this.#regression = new RandomForestRegression(options);
-            this.#regression.train(data, priceData);
+                this.#regression = new RandomForestClassifier(options);
+                this.#regression.train(data, priceData);
 
-            console.log(this.#regression.featureImportance());
+                if (modelPath) {
+                    fs.writeFileSync(modelPath, JSON.stringify(this.#regression.toJSON()));
+                }
 
-            return data;
+                return this.#regression;
+            });
+        }
+
+        this.#trainingPromise.then(regression => {
+            console.log(regression.featureImportance());
         });
     }
 
@@ -47,15 +60,13 @@ class HousingPriceEstimator {
         return Promise.all([
             this.#trainingPromise,
             inputPromise,
-        ]).then(([data, { data: inputData }]) => {
+        ]).then(([, { data: inputData }]) => {
             return {
-                data,
+                data: inputData,
                 predictions: this.#regression.predict(inputData)
             };
         });
     }
 }
 
-new HousingPriceEstimator(process.argv[2]).run(process.argv[3]).then(({ data, predictions }) => {
-    data.forEach((row, index) => console.log(row, predictions[index]));
-});
+export default HousingPriceEstimator;
