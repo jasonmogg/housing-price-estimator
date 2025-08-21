@@ -55,7 +55,7 @@ const predictor = new HousingPriceEstimator(trainingPath, modelPath, options);
 
 // Run predictions
 predictor.run(inputPath)
-    .then(({ data, predictions }) => {
+    .then(({ data, metrics, predictions, prices }) => {
         console.log('\nPrediction Results:');
         console.log('---------------------------------');
         
@@ -64,7 +64,16 @@ predictor.run(inputPath)
             console.log(`Property ${i+1}:`);
             console.log(`  Features: ${features.join(', ')}`);
             console.log(`  Predicted Price: $${Math.round(predictions[i]).toLocaleString()}`);
+            console.log(`  Actual Price: $${Math.round(prices[i]).toLocaleString()}`);
+            console.log(`  Difference: ${metrics.diffs[i]}`);
         });
+        
+        console.log('\nMetrics:');
+        console.log('---------------------------------');
+        console.log(`MAE: ${metrics.mae.toFixed(2)}`);
+        console.log(`MSE: ${metrics.mse.toFixed(2)}`);
+        console.log(`RMSE: ${metrics.rmse.toFixed(2)}`);
+        console.log(`R-squared: ${metrics.r2.toFixed(2)}`);
         
         console.log('\nPrediction complete!');
     })

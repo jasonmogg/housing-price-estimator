@@ -26,17 +26,15 @@ export class HousingPriceEstimator {
         } else {
             console.log('Training model from', trainingPath);
 
-            this.#trainingPromise = this.#load(trainingPath).then(({ data, rows }) => {
+            this.#trainingPromise = this.#load(trainingPath).then(({ data, prices, rows }) => {
                 const labels = rows[0];
-
-                const priceData = rows.slice(1).map(row => Number(row[labels.indexOf(PRICE_LABEL)]));
 
                 console.log('Training data loaded:');
 
-                data.forEach((row, index) => console.log(row, priceData[index]));
+                data.forEach((row, index) => console.log(row, prices[index]));
 
                 this.#regression = new RandomForestRegression(options);
-                this.#regression.train(data, priceData);
+                this.#regression.train(data, prices);
 
                 if (modelPath) {
                     fs.writeFileSync(modelPath, JSON.stringify(this.#regression.toJSON()));
@@ -53,27 +51,75 @@ export class HousingPriceEstimator {
         });
     }
 
+    // Calculate common regression metrics
+    #calculateMetrics(predictions, actuals) {
+        if (predictions.length !== actuals.length) {
+            throw new Error('Predictions and actuals must have the same length');
+        }
+
+        const diffs = predictions.map((pred, i) => (pred - actuals[i]) / actuals[i]);
+        
+        // Calculate Mean Absolute Error (MAE)
+        const mae = predictions.reduce((sum, pred, i) => 
+            sum + Math.abs(pred - actuals[i]), 0) / predictions.length;
+            
+        // Calculate Mean Squared Error (MSE)
+        const mse = predictions.reduce((sum, pred, i) => 
+            sum + Math.pow(pred - actuals[i], 2), 0) / predictions.length;
+            
+        // Calculate Root Mean Squared Error (RMSE)
+        const rmse = Math.sqrt(mse);
+        
+        // Calculate R-squared
+        const mean = actuals.reduce((sum, val) => sum + val, 0) / actuals.length;
+        const totalVariance = actuals.reduce((sum, val) => 
+            sum + Math.pow(val - mean, 2), 0);
+        const residualVariance = predictions.reduce((sum, pred, i) => 
+            sum + Math.pow(actuals[i] - pred, 2), 0);
+        const r2 = 1 - (residualVariance / totalVariance);
+        
+        return { diffs, mae, mse, rmse, r2 };
+    }
+
     #load (path) {
         return csv({ noheader: true, output: 'csv' }).fromFile(path).then(rows => {
             const labels = rows[0];
 
+            const dataRows = rows.slice(1);
+
             return {
-                data: rows.slice(1).map(row => this.#features.map(feature => Number(row[labels.indexOf(feature)]))),
+                data: dataRows.map(row => this.#features.map(feature => Number(row[labels.indexOf(feature)]))),
+                prices: labels.indexOf(PRICE_LABEL) === -1 ? null : dataRows.map(row => Number(row[labels.indexOf(PRICE_LABEL)])),
                 rows
             };
         });
     }
 
-    run (inputPath) {
-        const inputPromise = this.#load(inputPath);
-
+    // Calculate evaluation metrics if actual prices are available
+    run(inputPath) {
         return Promise.all([
             this.#trainingPromise,
-            inputPromise,
-        ]).then(([, { data: inputData }]) => {
+            this.#load(inputPath)
+        ]).then(([, { data, prices }]) => {
+            if (!this.#regression) {
+                throw new Error('Model not trained or loaded');
+            }
+            
+            // Make predictions
+            const predictions = this.#regression.predict(data);
+            
+            let metrics = null;
+
+            if (prices) {
+                // Calculate metrics
+                metrics = this.#calculateMetrics(predictions, prices);
+            }
+            
             return {
-                data: inputData,
-                predictions: this.#regression.predict(inputData)
+                data,
+                metrics,
+                predictions,
+                prices
             };
         });
     }
