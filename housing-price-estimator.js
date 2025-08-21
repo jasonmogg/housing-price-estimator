@@ -1,6 +1,6 @@
 import csv from 'csvtojson';
 import fs from 'node:fs';
-import { RandomForestClassifier } from 'ml-random-forest';
+import { RandomForestRegression } from 'ml-random-forest';
 
 const PRICE_LABEL = 'price';
 
@@ -19,7 +19,7 @@ export class HousingPriceEstimator {
             console.log('Loading model from', modelPath);
 
             this.#trainingPromise = new Promise(resolve => {
-                this.#regression = RandomForestClassifier.load(JSON.parse(fs.readSync(modelPath)));
+                this.#regression = RandomForestRegression.load(JSON.parse(fs.readSync(modelPath)));
 
                 resolve(this.#regression);
             });
@@ -29,13 +29,13 @@ export class HousingPriceEstimator {
             this.#trainingPromise = this.#load(trainingPath).then(({ data, rows }) => {
                 const labels = rows[0];
 
-                const priceData = rows.slice(1).map(row => row[labels.indexOf(PRICE_LABEL)]);
+                const priceData = rows.slice(1).map(row => Number(row[labels.indexOf(PRICE_LABEL)]));
 
                 console.log('Training data loaded:');
 
                 data.forEach((row, index) => console.log(row, priceData[index]));
 
-                this.#regression = new RandomForestClassifier(options);
+                this.#regression = new RandomForestRegression(options);
                 this.#regression.train(data, priceData);
 
                 if (modelPath) {

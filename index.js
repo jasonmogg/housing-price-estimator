@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { HousingPricePredictor } from './housing-price-predictor.js';
+import { HousingPriceEstimator } from './housing-price-estimator.js';
 import fs from 'node:fs';
 
 // Show usage if insufficient arguments
@@ -51,10 +51,10 @@ if (modelPath) console.log(`Model path: ${modelPath}`);
 console.log(`Input data: ${inputPath}`);
 
 // Create predictor instance
-const predictor = new HousingPricePredictor(trainingPath, modelPath, options);
+const predictor = new HousingPriceEstimator(trainingPath, modelPath, options);
 
 // Run predictions
-predictor.predict(inputPath)
+predictor.run(inputPath)
     .then(({ data, predictions }) => {
         console.log('\nPrediction Results:');
         console.log('---------------------------------');
