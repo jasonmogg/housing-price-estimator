@@ -1,9 +1,7 @@
 {
   "author": "Jason Jaskolka",
   "dependencies": {
-    "forestjs": "^1.0.0",
-    "ml-random-forest": "^2.1.0",
-    "source-map-support": "^0.5.21"
+    "ml-random-forest": "^2.1.0"
   },
   "devDependencies": {
     "csvtojson": "^2.0.10"
