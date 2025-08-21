@@ -13,25 +13,35 @@ export class HousingPriceEstimator {
         maxFeatures: this.#features.length,
         nEstimators: 200,
         replacement: false,
-        seed: 3
+        seed: 42
     }) {
         if (modelPath && fs.existsSync(modelPath)) {
+            console.log('Loading model from', modelPath);
+
             this.#trainingPromise = new Promise(resolve => {
                 this.#regression = RandomForestClassifier.load(JSON.parse(fs.readSync(modelPath)));
 
                 resolve(this.#regression);
             });
         } else {
+            console.log('Training model from', trainingPath);
+
             this.#trainingPromise = this.#load(trainingPath).then(({ data, rows }) => {
                 const labels = rows[0];
 
                 const priceData = rows.slice(1).map(row => row[labels.indexOf(PRICE_LABEL)]);
+
+                console.log('Training data loaded:');
+
+                data.forEach((row, index) => console.log(row, priceData[index]));
 
                 this.#regression = new RandomForestClassifier(options);
                 this.#regression.train(data, priceData);
 
                 if (modelPath) {
                     fs.writeFileSync(modelPath, JSON.stringify(this.#regression.toJSON()));
+
+                    console.log('Model saved to', modelPath);
                 }
 
                 return this.#regression;
