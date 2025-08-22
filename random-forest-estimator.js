@@ -50,6 +50,14 @@ export class RandomForestEstimator {
 
     // public properties
 
+    get featureFilters () {
+        return Object.freeze({});
+    }
+
+    get categoricalValues () {
+        return Object.freeze({});
+    }
+
     get features () {
         throw new Error('Not implemented');
     }
@@ -60,8 +68,12 @@ export class RandomForestEstimator {
 
     // methods
 
+    actualFilter (actual) {
+        return true;
+    }
+
     // Calculate common regression metrics
-    #calculateMetrics(predictions, actuals) {
+    static #calculateMetrics(predictions, actuals) {
         if (predictions.length !== actuals.length) {
             throw new Error('Predictions and actuals must have the same length');
         }
@@ -92,13 +104,51 @@ export class RandomForestEstimator {
 
     #load (path) {
         return csv({ noheader: true, output: 'csv' }).fromFile(path).then(rows => {
+            const actuals = [];
             const labels = rows[0];
-
             const dataRows = rows.slice(1);
+            const data = [];
+            const predictionIndex = labels.indexOf(this.predictionField);
+            
+            dataRows.forEach(row => {
+                const actual = Number(row[predictionIndex]);
+
+                if (!this.actualFilter(actual)) {
+                    return;
+                }
+
+                const rowData = [];
+
+                for (let i = 0; i < this.features.length; i++) {
+                    const feature = this.features[i];
+                    let value = row[labels.indexOf(feature)];
+
+                    if (this.categoricalValues[feature]) {
+                        value = this.categoricalValues[feature].indexOf(value);
+
+                        if (value === -1) {
+                            console.log('Missing categorical value:', row[labels.indexOf(feature)]);
+
+                            return;
+                        }
+                    } else {
+                        value = Number(value);
+                    }
+
+                    if (this.featureFilters[feature] && !this.featureFilters[feature](value)) {
+                        return;
+                    }
+
+                    rowData.push(value);
+                }
+
+                actuals.push(actual);
+                data.push(rowData);
+            });
 
             return {
-                actuals: labels.indexOf(this.predictionField) === -1 ? null : dataRows.map(row => Number(row[labels.indexOf(this.predictionField)])),
-                data: dataRows.map(row => this.features.map(feature => Number(row[labels.indexOf(feature)]))),
+                actuals,
+                data,
                 rows
             };
         });
@@ -121,7 +171,7 @@ export class RandomForestEstimator {
 
             if (actuals) {
                 // Calculate metrics
-                metrics = this.#calculateMetrics(predictions, actuals);
+                metrics = RandomForestEstimator.#calculateMetrics(predictions, actuals);
             }
             
             return {
