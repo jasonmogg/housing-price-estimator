@@ -65,7 +65,7 @@ predictor.run(inputPath)
             console.log(`  Features: ${features.join(', ')}`);
             console.log(`  Predicted Price: $${Math.round(predictions[i]).toLocaleString()}`);
             console.log(`  Actual Price: $${Math.round(prices[i]).toLocaleString()}`);
-            console.log(`  Difference: ${metrics.diffs[i]}`);
+            console.log(`  Difference: ${(metrics.diffs[i] * 100).toFixed(2)}%`);
         });
         
         console.log('\nMetrics:');

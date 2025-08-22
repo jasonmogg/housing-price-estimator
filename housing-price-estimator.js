@@ -5,7 +5,7 @@ import { RandomForestRegression } from 'ml-random-forest';
 const PRICE_LABEL = 'price';
 
 export class HousingPriceEstimator {
-    #features = Object.freeze(['bedrooms', 'bathrooms', 'yearBuilt', 'livingArea', 'lotSize']);
+    #features = Object.freeze(['bedrooms', 'bathrooms', 'yearBuilt', 'livingArea', 'lotSize', 'state']);
     #regression;
     #trainingPromise;
 
@@ -18,8 +18,8 @@ export class HousingPriceEstimator {
         if (modelPath && fs.existsSync(modelPath)) {
             console.log('Loading model from', modelPath);
 
-            this.#trainingPromise = new Promise(resolve => {
-                this.#regression = RandomForestRegression.load(JSON.parse(fs.readSync(modelPath)));
+            this.#trainingPromise = new Promise(async resolve => {
+                this.#regression = RandomForestRegression.load(JSON.parse(await fs.promises.readFile(modelPath)));
 
                 resolve(this.#regression);
             });
@@ -57,7 +57,7 @@ export class HousingPriceEstimator {
             throw new Error('Predictions and actuals must have the same length');
         }
 
-        const diffs = predictions.map((pred, i) => (pred - actuals[i]) / actuals[i]);
+        const diffs = predictions.map((pred, i) => (pred / actuals[i]) - 1);
         
         // Calculate Mean Absolute Error (MAE)
         const mae = predictions.reduce((sum, pred, i) => 
