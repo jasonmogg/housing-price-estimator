@@ -44,8 +44,8 @@ if (!fs.existsSync(inputPath)) {
 
 // Random forest options
 const options = {
-    maxFeatures: 5,  // Using all features
-    nEstimators: 100, // Number of trees in forest
+    maxFeatures: 1.0,  // Using all features
+    nEstimators: 200, // Number of trees in forest
     replacement: false,
     seed: 42
 };

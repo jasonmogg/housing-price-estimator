@@ -7,7 +7,7 @@ export class RandomForestEstimator {
     #trainingPromise;
 
     constructor (trainingPath, modelPath, options = {
-        maxFeatures: this.features.length,
+        maxFeatures: 1.0,
         nEstimators: 200,
         replacement: false,
         seed: 42
