@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import { HousingPriceEstimator } from './housing-price-estimator.js';
 import fs from 'node:fs';
 
 // Show usage if insufficient arguments
 if (process.argv.length < 3) {
-    console.error('Usage: node index.js <training_csv> [model_path] <input_csv>');
+    console.error('Usage: node index.js <module_path> <training_csv> [model_path] <input_csv>');
+    console.error('  module_path: Path to the module to use');
     console.error('  training_csv: Path to CSV file with training data');
     console.error('  model_path: (Optional) Path to save/load model');
     console.error('  input_csv: Path to CSV file with data to predict');
@@ -13,17 +13,18 @@ if (process.argv.length < 3) {
 }
 
 // Parse command line arguments
-const trainingPath = process.argv[2];
+const modulePath = process.argv[2];
+const trainingPath = process.argv[3];
 let modelPath = null;
 let inputPath = null;
 
-if (process.argv.length === 4) {
+if (process.argv.length === 5) {
     // No model path specified
-    inputPath = process.argv[3];
+    inputPath = process.argv[4];
 } else if (process.argv.length >= 5) {
     // Model path specified
-    modelPath = process.argv[3];
-    inputPath = process.argv[4];
+    modelPath = process.argv[4];
+    inputPath = process.argv[5];
 }
 
 // Verify file paths
@@ -45,13 +46,15 @@ const options = {
     seed: 42
 };
 
-console.log('Starting housing price prediction...');
+console.log('Starting prediction...');
 console.log(`Training data: ${trainingPath}`);
 if (modelPath) console.log(`Model path: ${modelPath}`);
 console.log(`Input data: ${inputPath}`);
 
 // Create predictor instance
-const predictor = new HousingPriceEstimator(trainingPath, modelPath, options);
+const module = await import(modulePath);
+const cls = module.default;
+const predictor = new cls(trainingPath, modelPath, options);
 
 // Run predictions
 predictor.run(inputPath)
@@ -61,10 +64,10 @@ predictor.run(inputPath)
         
         // Display predictions
         data.forEach((features, i) => {
-            console.log(`Property ${i+1}:`);
+            console.log(`Record ${i+1}:`);
             console.log(`  Features: ${features.join(', ')}`);
-            console.log(`  Predicted Price: $${Math.round(predictions[i]).toLocaleString()}`);
-            console.log(`  Actual Price: $${Math.round(actuals[i]).toLocaleString()}`);
+            console.log(`  Predicted: $${Math.round(predictions[i]).toLocaleString()}`);
+            console.log(`  Actual: $${Math.round(actuals[i]).toLocaleString()}`);
             console.log(`  Difference: ${(metrics.diffs[i] * 100).toFixed(2)}%`);
         });
         
