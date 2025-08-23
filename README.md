@@ -1,13 +1,13 @@
-# Housing Price Estimator
+# Random Forest Estimator
 
-A Node.js application that uses random forest algorithm to predict housing prices based on CSV data.
+A Node.js application that uses random forest algorithm to predict values (actuals) based on CSV data.
 
 ## Features
 
-- Uses machine learning (Random Forest) to predict housing prices
-- Supports training on CSV files containing housing data
+- Uses machine learning (Random Forest) to predict values based on features
+- Supports training on CSV files containing data
 - Can save and load trained models
-- Provides price predictions for new properties
+- Provides value predictions for data rows
 
 ## Installation
 
@@ -35,13 +35,7 @@ node index.js training2.csv model.json input2.csv
 
 ## CSV Format
 
-The CSV file should contain at least the following columns:
-- bedrooms
-- bathrooms
-- yearBuilt
-- livingArea
-- lotSize
-- price (for training data)
+The CSV file should contain at least one feature by overriding the features getter and providing the predictionField
 
 ## Requirements
 
