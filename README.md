@@ -1,4 +1,4 @@
-# Housing Price Estimator
+# Random Forest Estimator
 
 A Node.js application that uses random forest algorithm to predict values (actuals) based on CSV data.
 
