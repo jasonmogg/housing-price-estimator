@@ -42,10 +42,6 @@ export class RandomForestEstimator {
                 return this.#regression;
             });
         }
-
-        this.#trainingPromise.then(regression => {
-            console.log(regression.featureImportance());
-        });
     }
 
     // public properties
@@ -73,33 +69,39 @@ export class RandomForestEstimator {
     }
 
     // Calculate common regression metrics
-    static #calculateMetrics(predictions, actuals) {
+    #calculateMetrics(predictions, actuals) {
         if (predictions.length !== actuals.length) {
             throw new Error('Predictions and actuals must have the same length');
         }
 
-        const diffs = predictions.map((pred, i) => (pred / actuals[i]) - 1);
-        
-        // Calculate Mean Absolute Error (MAE)
-        const mae = predictions.reduce((sum, pred, i) => 
-            sum + Math.abs(pred - actuals[i]), 0) / predictions.length;
+        let diffs, mae, mse, rmse, r2;
+
+        const importance = Object.fromEntries(this.features.map((feature, index) => [feature, this.#regression.featureImportance()[index]]));
+
+        if (actuals) {
+            diffs = predictions.map((pred, i) => (pred / actuals[i]) - 1);
             
-        // Calculate Mean Squared Error (MSE)
-        const mse = predictions.reduce((sum, pred, i) => 
-            sum + Math.pow(pred - actuals[i], 2), 0) / predictions.length;
+            // Calculate Mean Absolute Error (MAE)
+            mae = predictions.reduce((sum, pred, i) => 
+                sum + Math.abs(pred - actuals[i]), 0) / predictions.length;
+                
+            // Calculate Mean Squared Error (MSE)
+            mse = predictions.reduce((sum, pred, i) => 
+                sum + Math.pow(pred - actuals[i], 2), 0) / predictions.length;
+                
+            // Calculate Root Mean Squared Error (RMSE)
+            rmse = Math.sqrt(mse);
             
-        // Calculate Root Mean Squared Error (RMSE)
-        const rmse = Math.sqrt(mse);
+            // Calculate R-squared
+            const mean = actuals.reduce((sum, val) => sum + val, 0) / actuals.length;
+            const totalVariance = actuals.reduce((sum, val) => 
+                sum + Math.pow(val - mean, 2), 0);
+            const residualVariance = predictions.reduce((sum, pred, i) => 
+                sum + Math.pow(actuals[i] - pred, 2), 0);
+            r2 = 1 - (residualVariance / totalVariance);
+        }
         
-        // Calculate R-squared
-        const mean = actuals.reduce((sum, val) => sum + val, 0) / actuals.length;
-        const totalVariance = actuals.reduce((sum, val) => 
-            sum + Math.pow(val - mean, 2), 0);
-        const residualVariance = predictions.reduce((sum, pred, i) => 
-            sum + Math.pow(actuals[i] - pred, 2), 0);
-        const r2 = 1 - (residualVariance / totalVariance);
-        
-        return { diffs, mae, mse, rmse, r2 };
+        return { diffs, importance, mae, mse, rmse, r2 };
     }
 
     #load (path) {
@@ -169,10 +171,7 @@ export class RandomForestEstimator {
             
             let metrics = null;
 
-            if (actuals) {
-                // Calculate metrics
-                metrics = RandomForestEstimator.#calculateMetrics(predictions, actuals);
-            }
+            metrics = this.#calculateMetrics(predictions, actuals);
             
             return {
                 data,

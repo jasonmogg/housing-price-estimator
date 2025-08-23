@@ -65,6 +65,10 @@ predictor.run(inputPath)
     .then(({ actuals, data, metrics, predictions }) => {
         console.log('\nPrediction Results:');
         console.log('---------------------------------');
+
+        console.log('Feature Importance:');
+        console.log('---------------------------------');
+        console.log(metrics.importance);
         
         // Display predictions
         data.forEach((features, i) => {
