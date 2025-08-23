@@ -33,6 +33,10 @@ if (!fs.existsSync(trainingPath)) {
     process.exit(1);
 }
 
+if (!modelPath) { // save model to random file
+    modelPath = `model-${Math.random().toString(36).substring(2, 15)}.json`;
+}
+
 if (!fs.existsSync(inputPath)) {
     console.error(`Input file not found: ${inputPath}`);
     process.exit(1);
