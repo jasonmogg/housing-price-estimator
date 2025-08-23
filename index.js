@@ -62,9 +62,13 @@ const predictor = new cls(trainingPath, modelPath, options);
 
 // Run predictions
 predictor.run(inputPath)
-    .then(({ actuals, data, metrics, predictions }) => {
+    .then(({ actuals, categoricalValues, data, metrics, predictions }) => {
         console.log('\nPrediction Results:');
         console.log('---------------------------------');
+
+        console.log('Categorical Values:');
+        console.log('---------------------------------');
+        console.log(categoricalValues);
 
         console.log('Feature Importance:');
         console.log('---------------------------------');

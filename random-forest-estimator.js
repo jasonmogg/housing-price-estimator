@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { RandomForestRegression } from 'ml-random-forest';
 
 export class RandomForestEstimator {
+    #categoricalValues = { ...this.categoricalValues };
     #regression;
     #trainingPromise;
 
@@ -124,20 +125,33 @@ export class RandomForestEstimator {
                 for (let i = 0; i < this.features.length; i++) {
                     const feature = this.features[i];
                     let value = row[labels.indexOf(feature)];
+                    const categoricalValues = this.#categoricalValues[feature];
 
-                    if (this.categoricalValues[feature]) {
-                        value = this.categoricalValues[feature].indexOf(value);
+                    if (categoricalValues) {
+                        const categoricalValue = categoricalValues.indexOf(value);
 
-                        if (value === -1) {
-                            console.log('Missing categorical value:', row[labels.indexOf(feature)]);
+                        if (categoricalValue === -1) {
+                            categoricalValues.push(value);
 
-                            return;
+                            value = categoricalValues.length - 1;
+                        } else {
+                            value = categoricalValue;
                         }
                     } else {
-                        value = Number(value);
+                        const numberValue = Number(value);
+
+                        if (isNaN(numberValue)) {
+                            this.#categoricalValues[feature] = [value];
+
+                            value = 0;
+                        } else {
+                            value = numberValue;
+                        }
                     }
 
-                    if (this.featureFilters[feature] && !this.featureFilters[feature](value)) {
+                    const featureFilter = this.featureFilters[feature];
+
+                    if (featureFilter && !featureFilter(value)) {
                         return;
                     }
 
@@ -174,6 +188,7 @@ export class RandomForestEstimator {
             metrics = this.#calculateMetrics(predictions, actuals);
             
             return {
+                categoricalValues: this.#categoricalValues,
                 data,
                 metrics,
                 predictions,
