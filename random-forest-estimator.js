@@ -24,9 +24,7 @@ export class RandomForestEstimator {
         } else {
             console.log('Training model from', trainingPath);
 
-            this.#trainingPromise = this.#load(trainingPath).then(({ actuals, data, rows }) => {
-                const fields = rows[0];
-
+            this.#trainingPromise = this.#load(trainingPath).then(({ actuals, data, fields, labels, rows }) => {
                 this.#regression = new RandomForestRegression(options);
                 this.#regression.train(data, actuals);
 
@@ -36,7 +34,7 @@ export class RandomForestEstimator {
                     console.log('Model saved to', modelPath);
                 }
 
-                return this.#regression;
+                return { actuals, data, fields, labels, rows };
             });
         }
     }
@@ -61,6 +59,10 @@ export class RandomForestEstimator {
 
     get predictionField () {
         throw new Error('Not implemented');
+    }
+
+    get trainingPromise () {
+        return this.#trainingPromise;
     }
 
     // methods
@@ -105,6 +107,11 @@ export class RandomForestEstimator {
         return { diffs, importance, mae, mse, rmse, r2 };
     }
 
+    // OR array of AND object filters
+    get dataFilters () {
+        return undefined;
+    }
+
     #load (path) {
         return csv({ noheader: true, output: 'csv' }).fromFile(path).then(rows => {
             const actuals = [];
@@ -113,12 +120,33 @@ export class RandomForestEstimator {
             const data = [];
             const labelIndex = fields.indexOf(this.labelField);
             const labels = [];
+            const orFilters = this.dataFilters;
             const predictionIndex = fields.indexOf(this.predictionField);
             
             dataRows.forEach(row => {
+                if (orFilters) {
+                    const passesDataFilters = orFilters.some(andFilter => {
+                        return Object.keys(andFilter).every(key => {
+                            const keyIndex = fields.indexOf(key);
+
+                            return row[keyIndex] === andFilter[key];
+                        });
+                    });
+
+                    if (!passesDataFilters) {
+                        return;
+                    }
+                }
+
+                console.log(row);
+
                 const actual = Number(row[predictionIndex]);
 
                 if (!this.actualFilter(actual)) {
+                    return;
+                }
+
+                if (!(actual)) {
                     return;
                 }
 
