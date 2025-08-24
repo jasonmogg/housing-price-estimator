@@ -12,7 +12,7 @@ export class HousingPriceEstimator extends RandomForestEstimator {
     }
 
     get features () {
-        return Object.freeze(['bathrooms', 'yearBuilt', 'livingArea', 'state']);
+        return Object.freeze(['bedrooms', 'bathrooms', 'livingArea', 'lotSize', 'state', 'lastSoldPrice']);
     }
 
     get predictionField () {
