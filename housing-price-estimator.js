@@ -15,6 +15,10 @@ export class HousingPriceEstimator extends RandomForestEstimator {
         return Object.freeze(['bedrooms', 'bathrooms', 'livingArea', 'lotSize', 'state', 'lastSoldPrice']);
     }
 
+    get labelField () {
+        return 'streetAddress';
+    }
+
     get predictionField () {
         return 'price';
     }

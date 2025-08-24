@@ -62,7 +62,12 @@ const predictor = new cls(trainingPath, modelPath, options);
 
 // Run predictions
 predictor.run(inputPath)
-    .then(({ actuals, categoricalValues, data, metrics, predictions }) => {
+    .then(({ actuals, categoricalValues, data, labels, metrics, predictions }) => {
+        console.log('\nTraining Data:');
+        console.log('---------------------------------');
+
+        data.forEach((row, index) => console.log(labels[index], row, actuals[index]));
+
         console.log('\nPrediction Results:');
         console.log('---------------------------------');
 

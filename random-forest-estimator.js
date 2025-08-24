@@ -25,11 +25,7 @@ export class RandomForestEstimator {
             console.log('Training model from', trainingPath);
 
             this.#trainingPromise = this.#load(trainingPath).then(({ actuals, data, rows }) => {
-                const labels = rows[0];
-
-                console.log('Training data loaded:');
-
-                data.forEach((row, index) => console.log(row, actuals[index]));
+                const fields = rows[0];
 
                 this.#regression = new RandomForestRegression(options);
                 this.#regression.train(data, actuals);
@@ -47,15 +43,19 @@ export class RandomForestEstimator {
 
     // public properties
 
-    get featureFilters () {
-        return Object.freeze({});
-    }
-
     get categoricalValues () {
         return Object.freeze({});
     }
 
+    get featureFilters () {
+        return Object.freeze({});
+    }
+
     get features () {
+        throw new Error('Not implemented');
+    }
+
+    get labelField () {
         throw new Error('Not implemented');
     }
 
@@ -108,10 +108,12 @@ export class RandomForestEstimator {
     #load (path) {
         return csv({ noheader: true, output: 'csv' }).fromFile(path).then(rows => {
             const actuals = [];
-            const labels = rows[0];
+            const fields = rows[0];
             const dataRows = rows.slice(1);
             const data = [];
-            const predictionIndex = labels.indexOf(this.predictionField);
+            const labelIndex = fields.indexOf(this.labelField);
+            const labels = [];
+            const predictionIndex = fields.indexOf(this.predictionField);
             
             dataRows.forEach(row => {
                 const actual = Number(row[predictionIndex]);
@@ -124,7 +126,7 @@ export class RandomForestEstimator {
 
                 for (let i = 0; i < this.features.length; i++) {
                     const feature = this.features[i];
-                    let value = row[labels.indexOf(feature)];
+                    let value = row[fields.indexOf(feature)];
                     const categoricalValues = this.#categoricalValues[feature];
 
                     if (categoricalValues) {
@@ -160,11 +162,14 @@ export class RandomForestEstimator {
 
                 actuals.push(actual);
                 data.push(rowData);
+                labels.push(row[labelIndex]);
             });
 
             return {
                 actuals,
                 data,
+                fields,
+                labels,
                 rows
             };
         });
@@ -175,7 +180,7 @@ export class RandomForestEstimator {
         return Promise.all([
             this.#trainingPromise,
             this.#load(inputPath)
-        ]).then(([, { actuals, data }]) => {
+        ]).then(([, { actuals, labels, data }]) => {
             if (!this.#regression) {
                 throw new Error('Model not trained or loaded');
             }
@@ -188,11 +193,12 @@ export class RandomForestEstimator {
             metrics = this.#calculateMetrics(predictions, actuals);
             
             return {
+                actuals,
                 categoricalValues: this.#categoricalValues,
                 data,
+                labels,
                 metrics,
-                predictions,
-                actuals
+                predictions
             };
         });
     }
