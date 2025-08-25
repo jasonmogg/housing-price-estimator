@@ -68,7 +68,7 @@ predictor.trainingPromise.then(({ actuals, data, fields, labels }) => {
     console.log('---------------------------------');
 
     data.forEach((row, index) => {
-        console.log(labels[index]);
+        console.log(index, labels[index]);
         console.log(Object.fromEntries(fields.map((field, index) => [field, row[index]])));
         console.log(predictor.predictionField + ':', actuals[index]);
     });
