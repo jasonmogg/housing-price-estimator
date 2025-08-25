@@ -1,6 +1,6 @@
 import RandomForestEstimator from './random-forest-estimator.js';
 
-export class HousingPriceEstimator extends RandomForestEstimator {
+export class NFLGameEstimator extends RandomForestEstimator {
     get dataFilters () {
         return [
             { homeTeam: 'Washington Redskins' }
@@ -26,4 +26,4 @@ export class HousingPriceEstimator extends RandomForestEstimator {
     }
 }
 
-export default HousingPriceEstimator;
+export default NFLGameEstimator;
