@@ -112,7 +112,7 @@ export class RandomForestEstimator {
         return undefined;
     }
 
-    getPredictionValue (row, predictionIndex) {
+    getPredictionValue ({ fields, row, predictionIndex }) {
         return Number(row[predictionIndex]);
     }
 
@@ -142,7 +142,7 @@ export class RandomForestEstimator {
                     }
                 }
 
-                const actual = this.getPredictionValue(row, predictionIndex);
+                const actual = this.getPredictionValue({ fields, row, predictionIndex });
 
                 if (!this.actualFilter(actual)) {
                     return;

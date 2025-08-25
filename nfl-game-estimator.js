@@ -13,10 +13,10 @@ export class NFLGameEstimator extends RandomForestEstimator {
         return 'WinScore';
     }
 
-    getPredictionValue (row) {
-        const awayScoreIndex = this.features.indexOf('awayScore');
+    getPredictionValue ({ fields, row }) {
+        const awayScoreIndex = fields.indexOf('AwayScore');
         const awayScore = Number(row[awayScoreIndex]);
-        const homeScoreIndex = this.features.indexOf('homeScore');
+        const homeScoreIndex = fields.indexOf('HomeScore');
         const homeScore = Number(row[homeScoreIndex]);
 
         return homeScore - awayScore;
