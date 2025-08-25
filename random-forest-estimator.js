@@ -13,30 +13,26 @@ export class RandomForestEstimator {
         replacement: false,
         seed: 42
     }) {
-        if (modelPath && fs.existsSync(modelPath)) {
-            console.log('Loading model from', modelPath);
+        this.#trainingPromise = this.#load(trainingPath).then(async ({ actuals, data, fields, labels, rows }) => {
+            if (modelPath && fs.existsSync(modelPath)) {
+                console.log('Loading model from', modelPath);
 
-            this.#trainingPromise = new Promise(async resolve => {
                 this.#regression = RandomForestRegression.load(JSON.parse(await fs.promises.readFile(modelPath)));
+            } else {
+                console.log('Training model from', trainingPath);
 
-                resolve(this.#regression);
-            });
-        } else {
-            console.log('Training model from', trainingPath);
-
-            this.#trainingPromise = this.#load(trainingPath).then(({ actuals, data, fields, labels, rows }) => {
                 this.#regression = new RandomForestRegression(options);
                 this.#regression.train(data, actuals);
 
                 if (modelPath) {
                     fs.writeFileSync(modelPath, JSON.stringify(this.#regression.toJSON()));
-
+    
                     console.log('Model saved to', modelPath);
                 }
+            }
 
-                return { actuals, data, fields, labels, rows };
-            });
-        }
+            return { actuals, data, fields, importance: this.fieldImportance, labels, rows };
+        });
     }
 
     // public properties
@@ -51,6 +47,12 @@ export class RandomForestEstimator {
 
     get features () {
         throw new Error('Not implemented');
+    }
+
+    get fieldImportance () {
+        const featureImportance = this.#regression.featureImportance();
+
+        return Object.fromEntries(this.features.map((feature, index) => [feature, featureImportance[index]]));
     }
 
     get labelField () {
@@ -79,8 +81,6 @@ export class RandomForestEstimator {
 
         let diffs, mae, mse, rmse, r2;
 
-        const importance = Object.fromEntries(this.features.map((feature, index) => [feature, this.#regression.featureImportance()[index]]));
-
         if (actuals) {
             diffs = predictions.map((pred, i) => (pred / actuals[i]) - 1);
             
@@ -104,12 +104,16 @@ export class RandomForestEstimator {
             r2 = 1 - (residualVariance / totalVariance);
         }
         
-        return { diffs, importance, mae, mse, rmse, r2 };
+        return { diffs, importance: this.fieldImportance, mae, mse, rmse, r2 };
     }
 
     // OR array of AND object filters
     get dataFilters () {
         return undefined;
+    }
+
+    getPredictionValue (row, predictionIndex) {
+        return Number(row[predictionIndex]);
     }
 
     #load (path) {
@@ -138,15 +142,9 @@ export class RandomForestEstimator {
                     }
                 }
 
-                console.log(row);
-
-                const actual = Number(row[predictionIndex]);
+                const actual = this.getPredictionValue(row, predictionIndex);
 
                 if (!this.actualFilter(actual)) {
-                    return;
-                }
-
-                if (!(actual)) {
                     return;
                 }
 

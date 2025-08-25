@@ -63,21 +63,25 @@ const module = await import(modulePath);
 const cls = module.default;
 const predictor = new cls(trainingPath, modelPath, options);
 
-predictor.trainingPromise.then(({ actuals, data, fields, labels }) => {
+predictor.trainingPromise.then(({ actuals, data, importance, labels }) => {
     console.log('\nTraining Data:');
     console.log('---------------------------------');
 
     data.forEach((row, index) => {
         console.log(index, labels[index]);
-        console.log(Object.fromEntries(fields.map((field, index) => [field, row[index]])));
+        console.log(Object.fromEntries(predictor.features.map((field, index) => [field, row[index]])));
         console.log(predictor.predictionField + ':', actuals[index]);
     });
+
+    console.log('Feature Importance:');
+    console.log('---------------------------------');
+    console.log(importance);
 });
 
 if (inputPath) {
     // Run predictions
     predictor.run(inputPath)
-        .then(({actuals, categoricalValues, data, metrics, predictions}) => {
+        .then(({ actuals, categoricalValues, data, metrics, predictions }) => {
             console.log('\nPrediction Results:');
             console.log('---------------------------------');
 
